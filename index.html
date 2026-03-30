@@ -1,0 +1,2235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IRONCLAD — Commitment Enforcement System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #090909;
+    --deep: #0f0f0f;
+    --surface: #141414;
+    --border: #222222;
+    --red: #cc1100;
+    --red-bright: #ff2200;
+    --red-glow: rgba(204,17,0,0.15);
+    --amber: #e87c00;
+    --green: #00a854;
+    --white: #f0ede8;
+    --muted: #666;
+    --mono: 'IBM Plex Mono', monospace;
+    --display: 'Bebas Neue', sans-serif;
+    --body: 'Barlow Condensed', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.5;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ─── NOISE OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.5;
+  }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: var(--black); }
+  ::-webkit-scrollbar-thumb { background: var(--red); }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    height: 64px;
+    background: rgba(9,9,9,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: var(--display);
+    font-size: 28px;
+    letter-spacing: 4px;
+    color: var(--white);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .nav-logo .dot {
+    width: 8px; height: 8px;
+    background: var(--red);
+    border-radius: 50%;
+    animation: pulse-red 2s infinite;
+  }
+
+  @keyframes pulse-red {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 40px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--white); }
+
+  .nav-cta {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: var(--red);
+    color: var(--white);
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    text-decoration: none;
+  }
+
+  .nav-cta:hover { background: var(--red-bright); transform: translateY(-1px); }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding-top: 64px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent 0%, var(--red-glow) 100%);
+    pointer-events: none;
+  }
+
+  .hero-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px 60px 80px 80px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--red);
+    border: 1px solid var(--red);
+    padding: 6px 12px;
+    width: fit-content;
+    margin-bottom: 40px;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .hero-tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--red);
+    border-radius: 50%;
+    animation: pulse-red 1.5s infinite;
+  }
+
+  .hero-h1 {
+    font-family: var(--display);
+    font-size: clamp(80px, 10vw, 130px);
+    line-height: 0.9;
+    letter-spacing: 2px;
+    color: var(--white);
+    margin-bottom: 8px;
+    animation: fadeUp 0.8s 0.1s ease both;
+  }
+
+  .hero-h1 .red { color: var(--red); }
+
+  .hero-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 40px;
+    animation: fadeUp 0.8s 0.2s ease both;
+  }
+
+  .hero-desc {
+    font-family: var(--body);
+    font-size: 20px;
+    font-weight: 300;
+    line-height: 1.6;
+    color: #aaa;
+    max-width: 440px;
+    margin-bottom: 56px;
+    animation: fadeUp 0.8s 0.3s ease both;
+  }
+
+  .hero-desc strong { color: var(--white); font-weight: 600; }
+
+  .hero-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    animation: fadeUp 0.8s 0.4s ease both;
+  }
+
+  .btn-primary {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: var(--red);
+    color: var(--white);
+    border: none;
+    padding: 16px 32px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.4s;
+  }
+
+  .btn-primary:hover::before { left: 100%; }
+  .btn-primary:hover { background: var(--red-bright); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(204,17,0,0.4); }
+
+  .btn-ghost {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 16px 32px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-ghost:hover { color: var(--white); border-color: #444; }
+
+  .hero-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 60px;
+    position: relative;
+    z-index: 2;
+    animation: fadeUp 0.8s 0.5s ease both;
+  }
+
+  /* ─── DASHBOARD CARD ─── */
+  .dashboard-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    width: 100%;
+    max-width: 460px;
+    padding: 28px;
+    position: relative;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(204,17,0,0.1) inset;
+  }
+
+  .dashboard-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--red), transparent);
+  }
+
+  .dc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dc-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .dc-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--red);
+    border: 1px solid var(--red);
+    padding: 3px 8px;
+    animation: blink 2s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .goal-item {
+    background: var(--deep);
+    border: 1px solid var(--border);
+    border-left: 3px solid;
+    padding: 16px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+
+  .goal-item.active { border-left-color: var(--amber); }
+  .goal-item.completed { border-left-color: var(--green); }
+  .goal-item.failed { border-left-color: var(--red); }
+
+  .goal-name {
+    font-family: var(--body);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .goal-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .goal-proof-type {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .goal-deadline {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--amber);
+  }
+
+  .goal-deadline.critical { color: var(--red); animation: blink 1s step-end infinite; }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--amber), var(--red-bright));
+    transition: width 1s ease;
+    position: relative;
+  }
+
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 20px; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6));
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+
+  .goal-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+
+  .goal-streak {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--green);
+  }
+
+  .goal-stake {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .fail-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: rgba(204,17,0,0.2);
+    color: var(--red);
+    padding: 2px 6px;
+    border: 1px solid rgba(204,17,0,0.4);
+  }
+
+  .dc-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .dc-stat {
+    text-align: center;
+  }
+
+  .dc-stat-val {
+    font-family: var(--display);
+    font-size: 32px;
+    letter-spacing: 1px;
+    color: var(--white);
+    display: block;
+  }
+
+  .dc-stat-val.red { color: var(--red); }
+  .dc-stat-val.green { color: var(--green); }
+
+  .dc-stat-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ─── TICKER ─── */
+  .ticker {
+    background: var(--red);
+    padding: 10px 0;
+    overflow: hidden;
+    white-space: nowrap;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .ticker-inner {
+    display: inline-flex;
+    gap: 0;
+    animation: ticker 30s linear infinite;
+  }
+
+  @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+  .ticker-item {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.9);
+    padding: 0 40px;
+  }
+
+  .ticker-item::after {
+    content: '//';
+    margin-left: 40px;
+    opacity: 0.4;
+  }
+
+  /* ─── SECTION COMMON ─── */
+  section {
+    padding: 120px 80px;
+    position: relative;
+  }
+
+  .section-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .section-h2 {
+    font-family: var(--display);
+    font-size: clamp(48px, 6vw, 80px);
+    line-height: 0.95;
+    letter-spacing: 2px;
+    color: var(--white);
+    margin-bottom: 24px;
+  }
+
+  .section-desc {
+    font-size: 18px;
+    font-weight: 300;
+    color: #888;
+    max-width: 560px;
+    line-height: 1.7;
+  }
+
+  /* ─── HOW IT WORKS ─── */
+  .how {
+    background: var(--deep);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .how-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 80px;
+    align-items: start;
+    margin-top: 60px;
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .step {
+    display: flex;
+    gap: 24px;
+    padding: 32px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+  }
+
+  .step:last-child { border-bottom: none; }
+
+  .step:hover .step-num { color: var(--red); }
+
+  .step-num {
+    font-family: var(--display);
+    font-size: 48px;
+    line-height: 1;
+    color: var(--border);
+    transition: color 0.3s;
+    flex-shrink: 0;
+    width: 48px;
+  }
+
+  .step-content { flex: 1; }
+
+  .step-title {
+    font-family: var(--body);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .step-desc {
+    font-size: 15px;
+    font-weight: 300;
+    color: #666;
+    line-height: 1.6;
+  }
+
+  .step-icon {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--red);
+    border: 1px solid rgba(204,17,0,0.3);
+    padding: 4px 8px;
+    margin-top: 12px;
+    width: fit-content;
+  }
+
+  /* ─── PROOF TYPES ─── */
+  .proof-showcase {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px;
+    position: sticky;
+    top: 100px;
+  }
+
+  .proof-showcase::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--red), transparent);
+  }
+
+  .proof-header {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .proof-types {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .proof-type {
+    background: var(--deep);
+    border: 1px solid var(--border);
+    padding: 16px;
+    text-align: center;
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+
+  .proof-type:hover {
+    border-color: var(--red);
+    box-shadow: 0 0 20px rgba(204,17,0,0.1);
+  }
+
+  .proof-type-icon {
+    font-size: 28px;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .proof-type-name {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* countdown */
+  .countdown-widget {
+    background: var(--deep);
+    border: 1px solid rgba(204,17,0,0.3);
+    padding: 20px;
+    margin-top: 20px;
+  }
+
+  .countdown-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .countdown-label::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--red);
+    border-radius: 50%;
+    animation: pulse-red 1s infinite;
+  }
+
+  .countdown-time {
+    font-family: var(--display);
+    font-size: 52px;
+    letter-spacing: 4px;
+    color: var(--red);
+    text-align: center;
+    animation: blink 1s step-end infinite;
+  }
+
+  .countdown-sub {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  /* ─── CONSEQUENCES ─── */
+  .consequences { background: var(--black); }
+
+  .escalation-table {
+    margin-top: 60px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .et-header {
+    display: grid;
+    grid-template-columns: 120px 1fr 1fr 1fr;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .et-cell {
+    padding: 14px 20px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-right: 1px solid var(--border);
+  }
+
+  .et-cell:last-child { border-right: none; }
+
+  .et-row {
+    display: grid;
+    grid-template-columns: 120px 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+
+  .et-row:last-child { border-bottom: none; }
+  .et-row:hover { background: var(--surface); }
+
+  .et-row .et-cell {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--white);
+    padding: 18px 20px;
+  }
+
+  .et-row .et-cell:first-child {
+    font-family: var(--display);
+    font-size: 32px;
+    color: var(--red);
+    letter-spacing: 1px;
+  }
+
+  .miss-1 { background: rgba(204,17,0,0.03); }
+  .miss-2 { background: rgba(204,17,0,0.06); }
+  .miss-3 { background: rgba(204,17,0,0.10); }
+  .miss-4 { background: rgba(204,17,0,0.15); }
+
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    margin-right: 6px;
+    margin-bottom: 4px;
+  }
+
+  .badge-red { background: rgba(204,17,0,0.2); color: var(--red); border: 1px solid rgba(204,17,0,0.4); }
+  .badge-amber { background: rgba(232,124,0,0.2); color: var(--amber); border: 1px solid rgba(232,124,0,0.4); }
+  .badge-muted { background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid var(--border); }
+
+  /* ─── FEATURES GRID ─── */
+  .features { background: var(--deep); }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin-top: 60px;
+    border: 1px solid var(--border);
+  }
+
+  .feature-card {
+    background: var(--surface);
+    padding: 40px 32px;
+    position: relative;
+    transition: background 0.3s;
+  }
+
+  .feature-card:hover { background: var(--deep); }
+
+  .feature-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 0; height: 2px;
+    background: var(--red);
+    transition: width 0.4s ease;
+  }
+
+  .feature-card:hover::after { width: 100%; }
+
+  .feature-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--red);
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .feature-icon {
+    font-size: 36px;
+    margin-bottom: 20px;
+    display: block;
+    filter: grayscale(0.3);
+  }
+
+  .feature-title {
+    font-family: var(--body);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--white);
+    margin-bottom: 12px;
+  }
+
+  .feature-desc {
+    font-size: 14px;
+    font-weight: 300;
+    color: #666;
+    line-height: 1.7;
+  }
+
+  /* ─── TIMELINE ─── */
+  .timeline-section { background: var(--black); }
+
+  .timeline {
+    margin-top: 60px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 120px;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--red), transparent);
+  }
+
+  .tl-item {
+    display: flex;
+    gap: 48px;
+    padding: 32px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+
+  .tl-item:last-child { border-bottom: none; }
+
+  .tl-time {
+    font-family: var(--display);
+    font-size: 28px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    width: 120px;
+    flex-shrink: 0;
+    text-align: right;
+    padding-right: 24px;
+    padding-top: 4px;
+    position: relative;
+  }
+
+  .tl-time::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    top: 12px;
+    width: 9px; height: 9px;
+    background: var(--red);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--red);
+  }
+
+  .tl-content { flex: 1; }
+
+  .tl-title {
+    font-family: var(--body);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+
+  .tl-desc {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 300;
+    line-height: 1.6;
+    max-width: 600px;
+  }
+
+  .tl-alert {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-top: 10px;
+  }
+
+  /* ─── PRICING ─── */
+  .pricing {
+    background: var(--deep);
+    border-top: 1px solid var(--border);
+  }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    margin-top: 60px;
+    align-items: start;
+  }
+
+  .price-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 40px 32px;
+    position: relative;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+
+  .price-card:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+
+  .price-card.featured {
+    border-color: var(--red);
+    background: var(--black);
+  }
+
+  .price-card.featured::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--red);
+  }
+
+  .price-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .price-featured-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    background: var(--red);
+    color: var(--white);
+    padding: 3px 8px;
+  }
+
+  .price-amount {
+    font-family: var(--display);
+    font-size: 64px;
+    letter-spacing: 2px;
+    color: var(--white);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .price-amount sup {
+    font-size: 24px;
+    vertical-align: top;
+    margin-top: 12px;
+    color: var(--muted);
+  }
+
+  .price-period {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+
+  .price-features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .price-features li {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #888;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.4;
+  }
+
+  .price-features li::before {
+    content: '—';
+    color: var(--red);
+    flex-shrink: 0;
+  }
+
+  .price-features li.included { color: var(--white); }
+
+  /* ─── SIGN UP / CTA SECTION ─── */
+  .cta-section {
+    background: var(--black);
+    padding: 120px 80px;
+    border-top: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: 'IRONCLAD';
+    position: absolute;
+    bottom: -60px; right: -40px;
+    font-family: var(--display);
+    font-size: 300px;
+    color: rgba(255,255,255,0.02);
+    letter-spacing: -10px;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .cta-inner {
+    max-width: 700px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ─── SIGNUP FORM ─── */
+  .signup-form {
+    margin-top: 48px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 40px;
+    position: relative;
+  }
+
+  .signup-form::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--red), transparent);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .form-field { display: flex; flex-direction: column; gap: 8px; }
+
+  .form-field.full { grid-column: 1 / -1; }
+
+  .form-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .form-input {
+    background: var(--deep);
+    border: 1px solid var(--border);
+    color: var(--white);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  .form-input:focus { border-color: var(--red); }
+  .form-input::placeholder { color: #444; }
+
+  .form-select {
+    background: var(--deep);
+    border: 1px solid var(--border);
+    color: var(--white);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 12px 16px;
+    outline: none;
+    width: 100%;
+    cursor: pointer;
+    appearance: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-select:focus { border-color: var(--red); }
+
+  .form-warning {
+    background: rgba(204,17,0,0.08);
+    border: 1px solid rgba(204,17,0,0.3);
+    padding: 16px;
+    margin-bottom: 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--red);
+    line-height: 1.6;
+  }
+
+  .form-submit {
+    width: 100%;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    background: var(--red);
+    color: var(--white);
+    border: none;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .form-submit::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.5s;
+  }
+
+  .form-submit:hover::before { left: 100%; }
+  .form-submit:hover { background: var(--red-bright); }
+
+  /* ─── FOOTER ─── */
+  footer {
+    background: var(--deep);
+    border-top: 1px solid var(--border);
+    padding: 60px 80px 40px;
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 60px;
+    margin-bottom: 60px;
+  }
+
+  .footer-brand { }
+
+  .footer-logo {
+    font-family: var(--display);
+    font-size: 36px;
+    letter-spacing: 4px;
+    color: var(--white);
+    margin-bottom: 16px;
+  }
+
+  .footer-tagline {
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 280px;
+  }
+
+  .footer-col-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--white);
+    margin-bottom: 20px;
+  }
+
+  .footer-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .footer-links a {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--white); }
+
+  .footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  .footer-copy {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #444;
+  }
+
+  .footer-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--green);
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse-red 2s infinite;
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    nav { padding: 0 24px; }
+    .nav-links { display: none; }
+    section { padding: 80px 24px; }
+    .hero { grid-template-columns: 1fr; }
+    .hero-right { display: none; }
+    .hero-left { padding: 60px 24px; }
+    .how-grid { grid-template-columns: 1fr; }
+    .proof-showcase { position: static; }
+    .features-grid { grid-template-columns: 1fr; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .footer-grid { grid-template-columns: 1fr 1fr; gap: 40px; }
+    .et-header, .et-row { grid-template-columns: 60px 1fr 1fr; }
+    .et-cell:nth-child(4) { display: none; }
+    .form-grid { grid-template-columns: 1fr; }
+    .cta-section { padding: 80px 24px; }
+    footer { padding: 60px 24px 40px; }
+    .footer-bottom { flex-direction: column; gap: 12px; }
+    .timeline::before { left: 80px; }
+    .tl-time { width: 80px; font-size: 20px; }
+  }
+
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--red);
+    padding: 40px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    transform: translateY(20px);
+    transition: transform 0.3s;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    font-family: var(--mono);
+    transition: color 0.2s;
+  }
+
+  .modal-close:hover { color: var(--red); }
+
+  .modal-title {
+    font-family: var(--display);
+    font-size: 40px;
+    letter-spacing: 2px;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .modal-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+
+  /* Notification Toast */
+  .toast {
+    position: fixed;
+    bottom: 32px; right: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--red);
+    padding: 20px 24px;
+    z-index: 9000;
+    transform: translateX(120%);
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    min-width: 300px;
+    max-width: 380px;
+  }
+
+  .toast.show { transform: translateX(0); }
+
+  .toast-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 6px;
+  }
+
+  .toast-msg {
+    font-size: 14px;
+    font-weight: 300;
+    color: #aaa;
+    line-height: 1.5;
+  }
+
+  /* Leaderboard */
+  .leaderboard {
+    background: var(--deep);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .lb-table {
+    margin-top: 40px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .lb-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 120px 120px 100px;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    transition: background 0.2s;
+  }
+
+  .lb-row:last-child { border-bottom: none; }
+  .lb-row.lb-header { background: var(--surface); }
+  .lb-row:not(.lb-header):hover { background: var(--surface); }
+
+  .lb-cell {
+    padding: 14px 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .lb-row:not(.lb-header) .lb-cell {
+    font-size: 13px;
+    color: var(--white);
+  }
+
+  .lb-rank {
+    font-family: var(--display);
+    font-size: 28px;
+    color: var(--border);
+    text-align: center;
+  }
+
+  .lb-rank.top { color: var(--amber); }
+
+  .lb-bar {
+    height: 4px;
+    background: var(--border);
+    margin-top: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .lb-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--amber));
+    transition: width 1.5s ease;
+  }
+
+  @media (max-width: 700px) {
+    .lb-row { grid-template-columns: 40px 1fr 80px; }
+    .lb-cell:nth-child(4), .lb-cell:nth-child(5) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <span class="dot"></span>
+    CONSISTENT HELPER
+  </a>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#consequences">Consequences</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#leaderboard">Leaderboard</a></li>
+  </ul>
+  <a href="#signup" class="nav-cta">Sign the Contract</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-tag">Commitment Enforcement System</div>
+    <h1 class="hero-h1">NO<br>EXCUSES.<br><span class="red">NO</span><br>ESCAPES.</h1>
+    <p class="hero-sub">// Proof-Gated Accountability Platform</p>
+    <p class="hero-desc">
+      Habit trackers fail because <strong>quitting costs nothing.</strong> 
+      Ironclad makes failure genuinely expensive — socially, financially, and permanently visible.
+    </p>
+    <div class="hero-actions">
+      <a href="#signup" class="btn-primary">Sign Your Contract</a>
+      <a href="#how" class="btn-ghost">See How It Works</a>
+    </div>
+  </div>
+  <div class="hero-right">
+    <!-- Dashboard Preview Card -->
+    <div class="dashboard-card">
+      <div class="dc-header">
+        <span class="dc-title">// Active Goals</span>
+        <span class="dc-status">● LIVE</span>
+      </div>
+
+      <!-- Goal 1 - Active -->
+      <div class="goal-item active">
+        <div class="goal-name">Code for 90 minutes daily</div>
+        <div class="goal-meta">
+          <span class="goal-proof-type">📸 TIMER_LOG</span>
+          <span class="goal-deadline critical" id="countdown-hero">23:47 remaining</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:0%" id="prog1"></div>
+        </div>
+        <div class="goal-footer">
+          <span class="goal-streak">🔥 14 day streak</span>
+          <span class="goal-stake">$50 staked</span>
+        </div>
+      </div>
+
+      <!-- Goal 2 - Completed -->
+      <div class="goal-item completed">
+        <div class="goal-name">Read 30 pages daily</div>
+        <div class="goal-meta">
+          <span class="goal-proof-type">📷 PHOTO</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--green);">✓ VERIFIED 14:22</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:0%;background:var(--green)" id="prog2"></div>
+        </div>
+        <div class="goal-footer">
+          <span class="goal-streak">🔥 22 day streak</span>
+          <span class="goal-stake">$25 staked</span>
+        </div>
+      </div>
+
+      <!-- Goal 3 - Failed -->
+      <div class="goal-item failed">
+        <div class="goal-name">Morning run 5km</div>
+        <div class="goal-meta">
+          <span class="goal-proof-type">📁 FILE_UPLOAD</span>
+          <span class="fail-badge">FAILED — MISS #3</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:0%;background:var(--red)" id="prog3"></div>
+        </div>
+        <div class="goal-footer">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--red);">Streak: 0</span>
+          <span class="goal-stake">$75 deducted</span>
+        </div>
+      </div>
+
+      <div class="dc-stats">
+        <div class="dc-stat">
+          <span class="dc-stat-val green">87%</span>
+          <span class="dc-stat-label">Completion</span>
+        </div>
+        <div class="dc-stat">
+          <span class="dc-stat-val">22</span>
+          <span class="dc-stat-label">Best Streak</span>
+        </div>
+        <div class="dc-stat">
+          <span class="dc-stat-val red">3</span>
+          <span class="dc-stat-label">Total Misses</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-inner" id="tickerInner">
+    <span class="ticker-item">No grace period</span>
+    <span class="ticker-item">Proof required</span>
+    <span class="ticker-item">Failure is public</span>
+    <span class="ticker-item">No snooze</span>
+    <span class="ticker-item">Deadlines are hard</span>
+    <span class="ticker-item">Consequences fire automatically</span>
+    <span class="ticker-item">No excuses accepted</span>
+    <span class="ticker-item">Escrow deducted immediately</span>
+    <span class="ticker-item">Miss count never resets</span>
+    <span class="ticker-item">Partners are notified</span>
+    <span class="ticker-item">Public profile by default</span>
+    <span class="ticker-item">No grace period</span>
+    <span class="ticker-item">Proof required</span>
+    <span class="ticker-item">Failure is public</span>
+    <span class="ticker-item">No snooze</span>
+    <span class="ticker-item">Deadlines are hard</span>
+    <span class="ticker-item">Consequences fire automatically</span>
+    <span class="ticker-item">No excuses accepted</span>
+    <span class="ticker-item">Escrow deducted immediately</span>
+    <span class="ticker-item">Miss count never resets</span>
+    <span class="ticker-item">Partners are notified</span>
+    <span class="ticker-item">Public profile by default</span>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div>
+    <span class="section-tag reveal">// System Protocol</span>
+    <h2 class="section-h2 reveal">HOW IT<br>WORKS</h2>
+    <p class="section-desc reveal">Every design decision answers one question: does this make it harder to quit, or easier? If easier — it's cut.</p>
+  </div>
+  <div class="how-grid">
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <div class="step-title">Sign a Commitment Contract</div>
+          <div class="step-desc">Define your goal, proof type, frequency, deadline, and stake amount. Once your first check-in happens — parameters are permanently locked. No retroactive softening.</div>
+          <div class="step-icon">LOCKED ON ACTIVATION</div>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <div class="step-title">Submit Tamper-Proof Evidence</div>
+          <div class="step-desc">No self-reporting. Upload photo with EXIF validation, use server-issued timer tokens, submit file hashes, or connect screen capture extension. The system verifies — you don't.</div>
+          <div class="step-icon">ZERO SELF-REPORT POLICY</div>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <div class="step-title">Hard Deadlines, No Exceptions</div>
+          <div class="step-desc">Server-side cron sweeps every minute. Past deadline with no valid proof = automatic FAILED state. The API rejects submissions even 1 second after cutoff. No "submitted late" state exists.</div>
+          <div class="step-icon">HARD SERVER-SIDE CUTOFF</div>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">04</div>
+        <div class="step-content">
+          <div class="step-title">Consequences Fire Immediately</div>
+          <div class="step-desc">Escrow deducted with no confirmation prompt. Partners notified with miss count. After 3 misses, failure posted publicly. No manual admin intervention required — ever.</div>
+          <div class="step-icon">AUTOMATED ENFORCEMENT</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="proof-showcase reveal">
+      <div class="proof-header">// Accepted Proof Types — Server Validated</div>
+      <div class="proof-types">
+        <div class="proof-type">
+          <span class="proof-type-icon">📷</span>
+          <div class="proof-type-name">Photo<br>+ EXIF Check</div>
+        </div>
+        <div class="proof-type">
+          <span class="proof-type-icon">⏱</span>
+          <div class="proof-type-name">Timer Log<br>Server Token</div>
+        </div>
+        <div class="proof-type">
+          <span class="proof-type-icon">📁</span>
+          <div class="proof-type-name">File Upload<br>Hash + Meta</div>
+        </div>
+        <div class="proof-type">
+          <span class="proof-type-icon">🖥</span>
+          <div class="proof-type-name">Screen Cap<br>Domain Check</div>
+        </div>
+      </div>
+
+      <div style="background:var(--deep);border:1px solid var(--border);padding:16px;margin-bottom:16px;">
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">// Anti-Cheat Baseline</div>
+        <div style="font-family:var(--mono);font-size:11px;color:#777;line-height:2;">
+          <span style="color:var(--red);">→</span> EXIF metadata stripped and re-validated<br>
+          <span style="color:var(--red);">→</span> Timer sessions are server-issued only<br>
+          <span style="color:var(--red);">→</span> File timestamps cross-checked<br>
+          <span style="color:var(--red);">→</span> Submissions within 60s of deadline: high-risk audit flag
+        </div>
+      </div>
+
+      <div class="countdown-widget">
+        <div class="countdown-label">Time Remaining — Today's Deadline</div>
+        <div class="countdown-time" id="mainCountdown">02:47:33</div>
+        <div class="countdown-sub">Hard cutoff — 23:59 UTC</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONSEQUENCES -->
+<section class="consequences" id="consequences">
+  <span class="section-tag reveal">// Escalation Protocol</span>
+  <h2 class="section-h2 reveal">FAILURE<br>IS <span style="color:var(--red)">EXPENSIVE</span></h2>
+  <p class="section-desc reveal">Not metaphorically. Three simultaneous consequence systems ensure there is no comfortable way to miss a deadline.</p>
+
+  <div class="escalation-table reveal">
+    <div class="et-header">
+      <div class="et-cell">Miss #</div>
+      <div class="et-cell">Financial Penalty</div>
+      <div class="et-cell">Social Exposure</div>
+      <div class="et-cell">Reputation Impact</div>
+    </div>
+    <div class="et-row miss-1">
+      <div class="et-cell">01</div>
+      <div class="et-cell">10% stake deducted to charity<br><span class="badge badge-red">NO CONFIRMATION</span></div>
+      <div class="et-cell">Streak resets to zero<br><span class="badge badge-muted">Private</span></div>
+      <div class="et-cell">Miss counter increments<br><span class="badge badge-muted">Tracked forever</span></div>
+    </div>
+    <div class="et-row miss-2">
+      <div class="et-cell">02</div>
+      <div class="et-cell">25% stake deducted<br><span class="badge badge-red">IMMEDIATE</span></div>
+      <div class="et-cell">Partner notified automatically<br><span class="badge badge-amber">CANNOT DISMISS</span></div>
+      <div class="et-cell">Miss history appended<br><span class="badge badge-muted">Immutable</span></div>
+    </div>
+    <div class="et-row miss-3">
+      <div class="et-cell">03</div>
+      <div class="et-cell">50% stake deducted<br><span class="badge badge-red">NO GRACE</span></div>
+      <div class="et-cell">Failure summary posted publicly<br><span class="badge badge-red">OPT-OUT DISABLED</span></div>
+      <div class="et-cell">Public failure post — permanent<br><span class="badge badge-red">VISIBLE TO ALL</span></div>
+    </div>
+    <div class="et-row miss-4">
+      <div class="et-cell">04+</div>
+      <div class="et-cell">100% stake deducted<br><span class="badge badge-red">FULL ESCROW</span></div>
+      <div class="et-cell">All partners notified<br><span class="badge badge-red">PUBLIC BROADCAST</span></div>
+      <div class="et-cell">Goal flagged "AT RISK" publicly<br><span class="badge badge-red">PERMANENT FLAG</span></div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;padding:24px 32px;background:var(--surface);border:1px solid rgba(204,17,0,0.3);border-left:3px solid var(--red);" class="reveal">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:10px;">// Escalation Reset Condition</div>
+    <div style="font-family:var(--body);font-size:16px;color:#888;font-weight:300;">Escalation level resets only after <strong style="color:var(--white);">7 consecutive verified completions</strong>. Miss count itself — the total — <strong style="color:var(--red);">never resets.</strong> It is permanent. It is visible. It defines your record.</div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <span class="section-tag reveal">// Platform Capabilities</span>
+  <h2 class="section-h2 reveal">BUILT FOR<br>ENFORCEMENT</h2>
+  <p class="section-desc reveal">Every feature exists to eliminate the escape routes your past self used to justify quitting.</p>
+
+  <div class="features-grid reveal">
+    <div class="feature-card">
+      <span class="feature-num">F.01</span>
+      <span class="feature-icon">🔒</span>
+      <div class="feature-title">Locked Contracts</div>
+      <div class="feature-desc">Goal parameters lock after first check-in. No editing frequency, deadline, or proof type retroactively. Your past self can't protect your future self from consequences.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">F.02</span>
+      <span class="feature-icon">⚡</span>
+      <div class="feature-title">Server-Side Timer</div>
+      <div class="feature-desc">Timer sessions are server-issued tokens. Start and stop are server-validated. Client cannot fake duration. The clock is ours, not yours.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">F.03</span>
+      <span class="feature-icon">💸</span>
+      <div class="feature-title">Financial Escrow</div>
+      <div class="feature-desc">Real money. Real stakes. Funds held in escrow at goal creation. On failure: deducted immediately to a charity you cannot benefit from. No confirmation prompt.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">F.04</span>
+      <span class="feature-icon">👥</span>
+      <div class="feature-title">Accountability Partners</div>
+      <div class="feature-desc">Assign partners who cannot dismiss failure notifications without acknowledging them. They see your streak, your misses, your goal name — automatically.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">F.05</span>
+      <span class="feature-icon">🌐</span>
+      <div class="feature-title">Public by Default</div>
+      <div class="feature-desc">All active goals are publicly listed. Missed tasks appear as red entries — not hidden, not deleted. Streak history is immutable. No soft-resets, ever.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">F.06</span>
+      <span class="feature-icon">🤖</span>
+      <div class="feature-title">AI Excuse Detection</div>
+      <div class="feature-desc">Submit an explanation for a miss. NLP classifier scores validity. Only externally verified reasons (e.g., hospital upload) can pause a goal. "I was tired" is auto-rejected.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">F.07</span>
+      <span class="feature-icon">📈</span>
+      <div class="feature-title">Dynamic Difficulty</div>
+      <div class="feature-desc">After a 7-day streak, the system proposes harder goals: +10% duration, +1 frequency. Declining is logged and visible on your public profile.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">F.08</span>
+      <span class="feature-icon">📅</span>
+      <div class="feature-title">Calendar Lock</div>
+      <div class="feature-desc">Goal tasks block calendar slots via Google Calendar API. Declining the calendar event is a pre-failure flag. Commitment starts before the day begins.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">F.09</span>
+      <span class="feature-icon">🏆</span>
+      <div class="feature-title">Leaderboard</div>
+      <div class="feature-desc">Ranked by 30-day completion rate — not streak alone. Gaming with easy goals doesn't work. Category filters: fitness, study, coding, finance.</div>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE / REMINDERS -->
+<section class="timeline-section" id="timeline">
+  <span class="section-tag reveal">// Deadline Enforcement Timeline</span>
+  <h2 class="section-h2 reveal">THE LAST<br>HOURS</h2>
+  <p class="section-desc reveal">Reminders are informational only. They do not extend deadlines. No snooze. No reschedule. Reminder seen = deadline acknowledged.</p>
+
+  <div class="timeline">
+    <div class="tl-item reveal">
+      <div class="tl-time">T−2h</div>
+      <div class="tl-content">
+        <div class="tl-title">First Reminder — Push + Email</div>
+        <div class="tl-desc">Standard alert sent. Goal name, deadline time, proof type required. Two hours remains. This is informational only — the deadline does not move.</div>
+      </div>
+    </div>
+    <div class="tl-item reveal">
+      <div class="tl-time">T−30m</div>
+      <div class="tl-content">
+        <div class="tl-title">Urgent Warning</div>
+        <div class="tl-desc">"You have 30 minutes. No proof submitted." Sent to device and email. Partners may also receive a preview alert depending on accountability settings.</div>
+        <div class="tl-alert">⚠ Urgency escalated</div>
+      </div>
+    </div>
+    <div class="tl-item reveal">
+      <div class="tl-time">T−5m</div>
+      <div class="tl-content">
+        <div class="tl-title">Final Alert — Last Warning</div>
+        <div class="tl-desc">"Final warning. Failure recorded in 5 minutes." No confirmation prompt. No button to delay. This is the last notification before automatic consequences trigger.</div>
+        <div class="tl-alert" style="color:var(--red);">🔴 Critical — no more warnings after this</div>
+      </div>
+    </div>
+    <div class="tl-item reveal" style="border-left: 2px solid var(--red); padding-left: 24px; margin-left: -24px;">
+      <div class="tl-time" style="color:var(--red);">T+0</div>
+      <div class="tl-content">
+        <div class="tl-title" style="color:var(--red);">Task Expires — Consequence Logic Fires</div>
+        <div class="tl-desc">Server cron marks task FAILED. Escrow deduction triggers. Partner notifications sent. Public failure post queued if miss count threshold met. No human intervention required.</div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+          <span class="badge badge-red">STREAK RESET</span>
+          <span class="badge badge-red">ESCROW DEDUCTED</span>
+          <span class="badge badge-red">PARTNERS NOTIFIED</span>
+          <span class="badge badge-red">PROFILE UPDATED</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LEADERBOARD -->
+<section class="leaderboard" id="leaderboard">
+  <span class="section-tag reveal">// Global Rankings</span>
+  <h2 class="section-h2 reveal">PUBLIC<br>LEADERBOARD</h2>
+  <p class="section-desc reveal">Ranked by 30-day completion rate. Your record is visible to everyone. There is nowhere to hide.</p>
+
+  <div class="lb-table reveal">
+    <div class="lb-row lb-header">
+      <div class="lb-cell">#</div>
+      <div class="lb-cell">User</div>
+      <div class="lb-cell">Completion</div>
+      <div class="lb-cell">Streak</div>
+      <div class="lb-cell">Misses</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-cell"><div class="lb-rank top">01</div></div>
+      <div class="lb-cell">
+        <div style="font-family:var(--body);font-weight:600;">Alex K.</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">Coding — 90min daily</div>
+        <div class="lb-bar"><div class="lb-bar-fill" style="width:0%" data-w="98%"></div></div>
+      </div>
+      <div class="lb-cell" style="color:var(--green);font-family:var(--display);font-size:24px;">98%</div>
+      <div class="lb-cell">🔥 47 days</div>
+      <div class="lb-cell" style="color:var(--red);">1</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-cell"><div class="lb-rank top">02</div></div>
+      <div class="lb-cell">
+        <div style="font-family:var(--body);font-weight:600;">Priya M.</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">Reading — 30 pages</div>
+        <div class="lb-bar"><div class="lb-bar-fill" style="width:0%" data-w="96%"></div></div>
+      </div>
+      <div class="lb-cell" style="color:var(--green);font-family:var(--display);font-size:24px;">96%</div>
+      <div class="lb-cell">🔥 31 days</div>
+      <div class="lb-cell" style="color:var(--red);">2</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-cell"><div class="lb-rank top">03</div></div>
+      <div class="lb-cell">
+        <div style="font-family:var(--body);font-weight:600;">Sam W.</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">Fitness — 5km run</div>
+        <div class="lb-bar"><div class="lb-bar-fill" style="width:0%" data-w="93%"></div></div>
+      </div>
+      <div class="lb-cell" style="color:var(--amber);font-family:var(--display);font-size:24px;">93%</div>
+      <div class="lb-cell">🔥 22 days</div>
+      <div class="lb-cell" style="color:var(--red);">3</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-cell"><div class="lb-rank">04</div></div>
+      <div class="lb-cell">
+        <div style="font-family:var(--body);font-weight:600;">Jordan L.</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">Finance — Daily savings log</div>
+        <div class="lb-bar"><div class="lb-bar-fill" style="width:0%" data-w="87%"></div></div>
+      </div>
+      <div class="lb-cell" style="font-family:var(--display);font-size:24px;">87%</div>
+      <div class="lb-cell">🔥 15 days</div>
+      <div class="lb-cell" style="color:var(--red);">5</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-cell"><div class="lb-rank">05</div></div>
+      <div class="lb-cell">
+        <div style="font-family:var(--body);font-weight:600;">Rahul D.</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">Study — 2hrs daily</div>
+        <div class="lb-bar"><div class="lb-bar-fill" style="width:0%" data-w="81%"></div></div>
+      </div>
+      <div class="lb-cell" style="font-family:var(--display);font-size:24px;">81%</div>
+      <div class="lb-cell">🔥 9 days</div>
+      <div class="lb-cell" style="color:var(--red);">7</div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <span class="section-tag reveal">// Commitment Tiers</span>
+  <h2 class="section-h2 reveal">CHOOSE<br>YOUR STAKES</h2>
+  <p class="section-desc reveal">Higher stakes. Higher accountability. The system works better when failure costs more.</p>
+
+  <div class="pricing-grid">
+    <div class="price-card reveal">
+      <div class="price-label">Recruit</div>
+      <div class="price-amount"><sup>$</sup>0</div>
+      <div class="price-period">/ month — social stakes only</div>
+      <ul class="price-features">
+        <li class="included">1 active goal</li>
+        <li class="included">Photo + timer proof</li>
+        <li class="included">Streak tracking</li>
+        <li class="included">2 accountability partners</li>
+        <li class="included">Public profile (mandatory)</li>
+        <li>Financial escrow</li>
+        <li>AI excuse detection</li>
+        <li>Calendar lock</li>
+        <li>Private goals</li>
+      </ul>
+      <a href="#signup" class="btn-ghost" style="width:100%;text-align:center;display:block;">Start Free</a>
+    </div>
+
+    <div class="price-card featured reveal">
+      <div class="price-label">Operator <span class="price-featured-badge">RECOMMENDED</span></div>
+      <div class="price-amount"><sup>$</sup>12</div>
+      <div class="price-period">/ month — full enforcement</div>
+      <ul class="price-features">
+        <li class="included">Unlimited active goals</li>
+        <li class="included">All proof types incl. screen capture</li>
+        <li class="included">Financial escrow (up to $500/goal)</li>
+        <li class="included">Unlimited accountability partners</li>
+        <li class="included">AI excuse detection</li>
+        <li class="included">Dynamic difficulty proposals</li>
+        <li class="included">Calendar lock integration</li>
+        <li class="included">Full leaderboard access</li>
+        <li>Private goals</li>
+      </ul>
+      <a href="#signup" class="btn-primary" style="width:100%;text-align:center;display:block;">Sign the Contract</a>
+    </div>
+
+    <div class="price-card reveal">
+      <div class="price-label">Commander</div>
+      <div class="price-amount"><sup>$</sup>29</div>
+      <div class="price-period">/ month — maximum pressure</div>
+      <ul class="price-features">
+        <li class="included">Everything in Operator</li>
+        <li class="included">Escrow up to $5,000/goal</li>
+        <li class="included">1 private goal (opt-in)</li>
+        <li class="included">Priority audit review</li>
+        <li class="included">Custom cron scheduling</li>
+        <li class="included">Team/group goals</li>
+        <li class="included">API access</li>
+        <li class="included">White-label partner notifications</li>
+      </ul>
+      <a href="#signup" class="btn-ghost" style="width:100%;text-align:center;display:block;">Go Commander</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA / SIGNUP -->
+<section class="cta-section" id="signup">
+  <div class="cta-inner">
+    <span class="section-tag reveal">// Enlistment</span>
+    <h2 class="section-h2 reveal">SIGN YOUR<br><span style="color:var(--red)">CONTRACT</span></h2>
+    <p class="section-desc reveal">You've been setting goals and failing quietly for too long. This ends here.</p>
+
+    <div class="signup-form reveal">
+      <div class="form-grid">
+        <div class="form-field">
+          <label class="form-label">Full Name</label>
+          <input class="form-input" type="text" placeholder="John Doe" id="f-name">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Email Address</label>
+          <input class="form-input" type="email" placeholder="you@domain.com" id="f-email">
+        </div>
+        <div class="form-field">
+          <label class="form-label">First Goal</label>
+          <input class="form-input" type="text" placeholder='e.g. "Code for 90 minutes daily"' id="f-goal">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Proof Type</label>
+          <select class="form-select" id="f-proof">
+            <option value="">Select proof type...</option>
+            <option value="photo">📷 Photo + EXIF Verification</option>
+            <option value="timer">⏱ Server-Side Timer Log</option>
+            <option value="file">📁 File Upload + Hash Check</option>
+            <option value="screen">🖥 Screen Capture Extension</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Stake Amount (USD)</label>
+          <input class="form-input" type="number" placeholder="50" min="0" max="500" id="f-stake">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Accountability Partner Email</label>
+          <input class="form-input" type="email" placeholder="partner@domain.com" id="f-partner">
+        </div>
+        <div class="form-field full">
+          <label class="form-label">Charity for Failures (Escrow Destination)</label>
+          <select class="form-select" id="f-charity">
+            <option value="">Choose charity...</option>
+            <option>GiveDirectly — Direct cash to those in need</option>
+            <option>Doctors Without Borders — Emergency medical care</option>
+            <option>Against Malaria Foundation</option>
+            <option>Oxfam International</option>
+            <option>Wikipedia Foundation</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-warning">
+        ⚠ By signing, you acknowledge: goal parameters lock after first check-in, stake funds enter escrow immediately, failures are recorded permanently and publicly, and no grace periods or excuses will be accepted. This is a binding commitment contract.
+      </div>
+
+      <button class="form-submit" id="signBtn">⚡ ACTIVATE COMMITMENT CONTRACT</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="footer-logo">IRONCLAD</div>
+      <div class="footer-tagline">A commitment enforcement system. Not a habit tracker. Not a reminder app. A system that makes skipping harder than doing.</div>
+    </div>
+    <div>
+      <div class="footer-col-title">Platform</div>
+      <ul class="footer-links">
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="#consequences">Consequences</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#leaderboard">Leaderboard</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Protocol</div>
+      <ul class="footer-links">
+        <li><a href="#">API Reference</a></li>
+        <li><a href="#">Proof Validation</a></li>
+        <li><a href="#">Escrow System</a></li>
+        <li><a href="#">Anti-Cheat Rules</a></li>
+        <li><a href="#">Data Model</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Legal</div>
+      <ul class="footer-links">
+        <li><a href="#">Terms of Contract</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Escrow Agreement</a></li>
+        <li><a href="#">Partner Consent</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2025 Ironclad Systems. All failures are permanent and public.</div>
+    <div class="footer-status">
+      <div class="status-dot"></div>
+      All systems enforcing — 1,247 active contracts
+    </div>
+  </div>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">CONTRACT<br>ACTIVATED</div>
+    <div class="modal-sub">// Commitment protocol initiated</div>
+    <div style="font-family:var(--mono);font-size:12px;color:#777;line-height:2;margin-bottom:24px;">
+      <span style="color:var(--green);">✓</span> Goal parameters locked<br>
+      <span style="color:var(--green);">✓</span> Stake funds in escrow<br>
+      <span style="color:var(--green);">✓</span> Partner notification sent<br>
+      <span style="color:var(--green);">✓</span> Public profile updated<br>
+      <span style="color:var(--green);">✓</span> First deadline set: <span id="modalDeadline"></span>
+    </div>
+    <div style="background:rgba(204,17,0,0.08);border:1px solid rgba(204,17,0,0.3);padding:16px;font-family:var(--mono);font-size:11px;color:var(--red);line-height:1.7;margin-bottom:24px;">
+      There is no going back. Your first task is now ACTIVE. Submit proof before the deadline or consequences fire automatically.
+    </div>
+    <button class="btn-primary" style="width:100%" onclick="closeModal()">I UNDERSTAND — HOLD ME ACCOUNTABLE</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-title" id="toastTitle">System Alert</div>
+  <div class="toast-msg" id="toastMsg">Your accountability partner has been notified.</div>
+</div>
+
+<script>
+  // ── Scroll Reveal ──
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  reveals.forEach(el => observer.observe(el));
+
+  // ── Progress bars animate after load ──
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      document.getElementById('prog1').style.width = '62%';
+      document.getElementById('prog2').style.width = '100%';
+      document.getElementById('prog3').style.width = '100%';
+    }, 800);
+
+    // Leaderboard bars
+    setTimeout(() => {
+      document.querySelectorAll('.lb-bar-fill').forEach(bar => {
+        bar.style.width = bar.dataset.w;
+      });
+    }, 1200);
+  });
+
+  // ── Live Countdown ──
+  function updateCountdown() {
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setUTCHours(23, 59, 0, 0);
+    let diff = midnight - now;
+    if (diff < 0) diff += 86400000;
+
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+
+    const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+    const mainEl = document.getElementById('mainCountdown');
+    const heroEl = document.getElementById('countdown-hero');
+
+    if (mainEl) mainEl.textContent = timeStr;
+    if (heroEl) {
+      if (h < 1) {
+        heroEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} remaining`;
+        heroEl.classList.add('critical');
+      } else {
+        heroEl.textContent = `${h}h ${String(m).padStart(2,'0')}m remaining`;
+      }
+    }
+  }
+
+  setInterval(updateCountdown, 1000);
+  updateCountdown();
+
+  // ── Toast System ──
+  let toastTimer;
+  function showToast(title, msg) {
+    const t = document.getElementById('toast');
+    document.getElementById('toastTitle').textContent = title;
+    document.getElementById('toastMsg').textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+  }
+
+  // Periodic system alerts
+  const alerts = [
+    ['// SYSTEM ALERT', 'Alex K. just submitted timer proof for "Code 90min" — 14:47 remaining.'],
+    ['// FAILURE LOGGED', 'Jordan L. missed "Morning Meditation" — Miss #2. Partners notified.'],
+    ['// ESCALATION', 'Sam W. — Miss #3. 50% stake deducted. Failure posted to public profile.'],
+    ['// PROOF REJECTED', 'Anonymous submission flagged: timestamp within 60s of deadline. Audit queued.'],
+    ['// STREAK MILESTONE', 'Priya M. hit 30-day streak. Dynamic difficulty proposal issued.'],
+  ];
+  let alertIdx = 0;
+
+  setTimeout(() => {
+    showToast(alerts[0][0], alerts[0][1]);
+    setInterval(() => {
+      alertIdx = (alertIdx + 1) % alerts.length;
+      showToast(alerts[alertIdx][0], alerts[alertIdx][1]);
+    }, 8000);
+  }, 3000);
+
+  // ── Modal ──
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  });
+
+  // ── Sign Button ──
+  document.getElementById('signBtn').addEventListener('click', () => {
+    const name = document.getElementById('f-name').value.trim();
+    const email = document.getElementById('f-email').value.trim();
+    const goal = document.getElementById('f-goal').value.trim();
+
+    if (!name || !email || !goal) {
+      showToast('// VALIDATION ERROR', 'Name, email, and goal are required to activate a contract.');
+      return;A
+    }
+
+    // Set deadline in modal
+    const now = new Date();
+    const deadline = new Date();
+    deadline.setUTCHours(23, 59, 0, 0);
+    document.getElementById('modalDeadline').textContent = deadline.toLocaleTimeString();
+
+    document.getElementById('modalOverlay').classList.add('open');
+    showToast('// CONTRACT ACTIVATED', `${name}, your first deadline has been set. No turning back.`);
+  });
+
+  // ── Proof type hover feedback ──
+  document.querySelectorAll('.proof-type').forEach(pt => {
+    pt.addEventListener('click', () => {
+      const name = pt.querySelector('.proof-type-name').textContent.split('\n')[0];
+      showToast('// PROOF TYPE INFO', `${name} — server-validated. Client cannot manipulate results.`);
+    });
+  });
+</script>
+</body>
+</html>
